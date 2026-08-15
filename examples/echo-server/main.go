@@ -13,6 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 
 	"github.com/digital-michael/mcp-common/bootstrap"
+	"github.com/digital-michael/mcp-common/buildinfo"
 	"github.com/digital-michael/mcp-common/registry"
 )
 
@@ -42,6 +43,10 @@ func main() {
 			Examples:  map[string]string{"message": "Hello, mcp-common!"},
 		},
 	})
+	// Proves the ldflags-across-package-boundary mechanism works before
+	// mcp-admin ever depends on it -- see the Makefile's build target for
+	// the actual -X flags that stamp buildinfo.Version/BuildID.
+	reg.Add(buildinfo.Tool("echo-server", registry.TierGlobal))
 
-	bootstrap.Run("echo-server", "0.1.0", family, BuildScope, reg, []string{"diagnostics"})
+	bootstrap.Run("echo-server", buildinfo.Full(), family, BuildScope, reg, []string{"diagnostics"})
 }

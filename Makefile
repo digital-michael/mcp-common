@@ -4,18 +4,30 @@
 # purpose. build/test are scoped accordingly rather than running a bare
 # `go build ./...`/`go test ./...`, which would break on the example, not
 # the library, and be confusing about why.
-LIB_PKGS := ./registry/... ./config/... ./bootstrap/...
+LIB_PKGS := ./registry/... ./config/... ./bootstrap/... ./buildinfo/...
 EXAMPLE  := ./examples/echo-server
 BIN      := bin
+
+# VERSION is a plain-text file, bumped by hand. BUILD_ID is a UTC datetime
+# stamp computed fresh at every build -- same convention as mcp-local's own
+# Makefile. Both are baked into echo-server via -ldflags, targeting
+# buildinfo's package path directly (not a per-binary package) -- this is
+# the concrete proof that ldflags-across-a-module-boundary actually works,
+# before mcp-admin depends on the same mechanism.
+BUILDINFO_PKG := github.com/digital-michael/mcp-common/buildinfo
+VERSION       := $(shell cat VERSION 2>/dev/null || echo 0.0.0-unversioned)
+BUILD_ID      := $(shell date -u +%Y%m%d%H%M%S)
+LDFLAGS       := -X $(BUILDINFO_PKG).Version=$(VERSION) -X $(BUILDINFO_PKG).BuildID=$(BUILD_ID)
 
 .DEFAULT_GOAL := build
 
 .PHONY: build
 build: ## Build the echo-server example for each scope variant (local/federated/global)
 	@mkdir -p $(BIN)
-	go build -tags local     -o $(BIN)/echo-server-local     $(EXAMPLE)
-	go build -tags federated -o $(BIN)/echo-server-federated $(EXAMPLE)
-	go build -tags global    -o $(BIN)/echo-server-global    $(EXAMPLE)
+	go build -ldflags "$(LDFLAGS)" -tags local     -o $(BIN)/echo-server-local     $(EXAMPLE)
+	go build -ldflags "$(LDFLAGS)" -tags federated -o $(BIN)/echo-server-federated $(EXAMPLE)
+	go build -ldflags "$(LDFLAGS)" -tags global    -o $(BIN)/echo-server-global    $(EXAMPLE)
+	@echo "Built with version $(VERSION)+$(BUILD_ID)"
 
 .PHONY: test
 test: ## go vet + go test -- library packages need no tag, the example is checked under each one
