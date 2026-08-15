@@ -125,6 +125,31 @@ func TestMetaStampingLogic(t *testing.T) {
 	}
 }
 
+// TestRegisterWithServerSkipsInternalTier confirms RegisterWithServer
+// doesn't panic/error when a TierInternal def is present alongside a normal
+// one -- same testing limitation as TestRegisterWithServerRespectsEnabled
+// above (mcp-go's MCPServer exposes no lookup accessor in this version, so
+// registration/exclusion can't be asserted directly here). The real proof
+// that TierInternal is actually excluded from the wire (not just "didn't
+// crash") is the live JSON-RPC smoke test against a real consumer -- see
+// mcp-local's echo tool, migrated onto this registry specifically to
+// exercise this.
+func TestRegisterWithServerSkipsInternalTier(t *testing.T) {
+	r := New()
+	r.Add(
+		ToolDef{
+			Tool:    mcp.NewTool("internal-only", mcp.WithDescription("test")),
+			Handler: pingHandler,
+			Domain:  "diagnostics",
+			Tier:    TierInternal,
+		},
+		testDef("ping"),
+	)
+
+	s := server.NewMCPServer("test", "0.0.0")
+	r.RegisterWithServer(s, "cortex", "local", nil)
+}
+
 func TestRegisterWithServerRespectsEnabled(t *testing.T) {
 	r := New()
 	r.Add(ToolDef{

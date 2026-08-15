@@ -130,12 +130,19 @@ func (r *Registry) Run(ctx context.Context, name string, args map[string]any) (*
 // as enabled by default (fail-open on enablement, matching mcp-local's
 // existing MCP_TOOLS_<GROUP> behavior -- this is a deliberate match, not an
 // independent choice; see config.LoadEnabled's doc comment for the
-// reasoning). Tier is NOT filtered here -- which tiers a given binary
-// should expose is a build-time/deployment decision the caller makes by
-// choosing what it Adds to the Registry in the first place, not something
-// this method decides at registration time.
+// reasoning). Tier is otherwise NOT filtered here -- which tiers a given
+// binary should expose beyond Internal is a build-time/deployment decision
+// the caller makes by choosing what it Adds to the Registry in the first
+// place, not something this method decides at registration time. The one
+// exception is TierInternal itself: it is always skipped, unconditionally,
+// matching Tier's own doc comment ("never registered with the MCP server,
+// reachable only via direct Run") -- Run() stays tier-blind by design, so
+// this is the only enforcement point for that guarantee.
 func (r *Registry) RegisterWithServer(s *server.MCPServer, family, scope string, enabled map[string]bool) {
 	for _, def := range r.defs {
+		if def.Tier == TierInternal {
+			continue
+		}
 		if on, explicit := enabled[def.Domain]; explicit && !on {
 			continue
 		}
