@@ -48,5 +48,5 @@ func main() {
 	// the actual -X flags that stamp buildinfo.Version/BuildID.
 	reg.Add(buildinfo.Tool("echo-server", registry.TierLocal))
 
-	bootstrap.Run("echo-server", buildinfo.Full(), family, BuildScope, reg, []string{"diagnostics"})
+	bootstrap.Run("echo-server", buildinfo.Full(), family, BuildScope, AllowedTiers, reg, []string{"diagnostics"})
 }

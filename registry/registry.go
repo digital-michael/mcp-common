@@ -167,39 +167,47 @@ func (r *Registry) Run(ctx context.Context, name string, args map[string]any) (*
 	return def.Handler(ctx, req)
 }
 
-// RegisterWithServer registers every enabled tool with s, stamping
-// _meta.family and _meta.scope on each one automatically -- no per-tool or
-// per-domain code needs to remember to do this. A tool is registered only
-// if enabled[def.Domain] is true; a domain absent from enabled is treated
-// as enabled by default (fail-open on enablement, matching mcp-local's
-// existing MCP_TOOLS_<GROUP> behavior -- this is a deliberate match, not an
-// independent choice; see config.LoadEnabled's doc comment for the
-// reasoning). Tier is otherwise NOT filtered here -- which tiers a given
-// binary should expose beyond Internal is a build-time/deployment decision
-// the caller makes by choosing what it Adds to the Registry in the first
-// place, not something this method decides at registration time. The one
-// exception is TierInternal itself: it is always skipped, unconditionally,
-// matching Tier's own doc comment ("never registered with the MCP server,
-// reachable only via direct Run") -- Run() stays tier-blind by design, so
-// this is the only enforcement point for that guarantee.
-func (r *Registry) RegisterWithServer(s *server.MCPServer, family, scope string, enabled map[string]bool) {
+// RegisterWithServer registers every enabled, tier-allowed tool with s,
+// stamping _meta.family and _meta.scope on each one automatically -- no
+// per-tool or per-domain code needs to remember to do this.
+//
+// Two independent filters apply, in order:
+//  1. Tier: a tool is registered only if its Tier appears in allowedTiers.
+//     TierInternal is always skipped regardless of allowedTiers, matching
+//     Tier's own doc comment ("never registered with the MCP server,
+//     reachable only via direct Run") -- Run() stays tier-blind by design,
+//     so this is the only enforcement point for that guarantee.
+//  2. Enablement: a tool is registered only if enabled[def.Domain] is true;
+//     a domain absent from enabled is treated as enabled by default
+//     (fail-open, matching mcp-local's existing MCP_TOOLS_<GROUP> behavior
+//     -- see config.LoadEnabled's doc comment for the reasoning).
+//
+// allowedTiers is caller-supplied rather than inferred from scope here,
+// deliberately: this package doesn't own any one consumer's BuildScope
+// vocabulary (mcp-local uses local/membership/all, mcp-admin uses
+// admin/all, examples/echo-server uses local/membership/global -- three
+// different tag sets), so "which tag permits which tiers" is a decision
+// each consumer makes for itself (typically in its own scope_*.go files,
+// alongside the BuildScope const already declared there) and passes in.
+// This mirrors, and generalizes, the TierInternal precedent above: a
+// runtime check at registration time, not a compile-time build-tag-gated
+// registration call -- unlike mcp-admin's per-category register_X.go
+// pattern, this generalizes to a domain containing tools of mixed tiers
+// (e.g. a future `delegate` with one Local and one Membership tool).
+func (r *Registry) RegisterWithServer(s *server.MCPServer, family, scope string, allowedTiers []Tier, enabled map[string]bool) {
 	// TODO: membership authentication goes here. TierMembership currently
-	// has no enforcement of any kind (unlike TierInternal, skipped
-	// unconditionally below) -- a Membership-tier tool is exposed to
-	// whatever caller reaches this connection, with no verification that
-	// caller is actually a trusted peer. litellm.yaml's mcp_servers config
-	// still has allow_all_keys: true, and real per-caller authz (BL-008-012)
-	// is still blocked. Deferred deliberately (operator, 2026-08-16) -- not
-	// being addressed now, but the gap is real and this is where the check
-	// would go once it exists. See docs/mcp-local/tool-access-tiers.md and
-	// ledger epic 05fdfa65.
-	for _, def := range r.defs {
-		if def.Tier == TierInternal {
-			continue
-		}
-		if on, explicit := enabled[def.Domain]; explicit && !on {
-			continue
-		}
+	// has no enforcement of caller identity (unlike Tier/allowedTiers
+	// filtering just above, which only governs what a binary CAN expose,
+	// not who's allowed to connect to it) -- a Membership-tier tool, once
+	// one exists and is registered, is exposed to whatever caller reaches
+	// this connection, with no verification that caller is actually a
+	// trusted peer. litellm.yaml's mcp_servers config still has
+	// allow_all_keys: true, and real per-caller authz (BL-008-012) is still
+	// blocked. Deferred deliberately (operator, 2026-08-16) -- not being
+	// addressed now, but the gap is real and this is where the check would
+	// go once it exists. See docs/mcp-local/tool-access-tiers.md and ledger
+	// epic 05fdfa65.
+	for _, def := range r.filterForRegistration(allowedTiers, enabled) {
 		t := def.Tool
 		if t.Meta == nil {
 			t.Meta = &mcp.Meta{}
@@ -211,4 +219,33 @@ func (r *Registry) RegisterWithServer(s *server.MCPServer, family, scope string,
 		t.Meta.AdditionalFields["scope"] = scope
 		s.AddTool(t, server.ToolHandlerFunc(def.Handler))
 	}
+}
+
+// filterForRegistration returns, in registration order, the subset of defs
+// that RegisterWithServer would register -- the Tier/allowedTiers and
+// Domain/enabled filtering logic, pulled out as a pure function so it's
+// directly unit-testable. mcp-go's MCPServer exposes no lookup accessor in
+// this version, so asserting "which tools got registered" against a real
+// *server.MCPServer isn't possible from a test; this is what the actual
+// filtering-correctness tests call instead. RegisterWithServer itself stays
+// the only place that touches the server/meta-stamping side effects.
+func (r *Registry) filterForRegistration(allowedTiers []Tier, enabled map[string]bool) []ToolDef {
+	allowed := make(map[Tier]bool, len(allowedTiers))
+	for _, t := range allowedTiers {
+		allowed[t] = true
+	}
+	var out []ToolDef
+	for _, def := range r.defs {
+		if def.Tier == TierInternal {
+			continue
+		}
+		if !allowed[def.Tier] {
+			continue
+		}
+		if on, explicit := enabled[def.Domain]; explicit && !on {
+			continue
+		}
+		out = append(out, def)
+	}
+	return out
 }

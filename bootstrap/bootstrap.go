@@ -24,11 +24,14 @@ import (
 // serves one of the introspection/direct-call modes (-version, -list-tools,
 // -help, -run). name/version identify this binary; family/scope are
 // stamped into every registered tool's _meta by the registry (see
-// registry.Registry.RegisterWithServer); domains is the full list of domain
-// names this binary knows about, used to load MCP_TOOLS_<GROUP>
-// enablement via config.LoadEnabled regardless of which domains actually
-// have any tools registered yet.
-func Run(name, version, family, scope string, reg *registry.Registry, domains []string) {
+// registry.Registry.RegisterWithServer); allowedTiers is this binary's own
+// tier allow-list for its BuildScope (see registry.RegisterWithServer's doc
+// comment -- typically declared alongside BuildScope in the caller's own
+// scope_*.go files); domains is the full list of domain names this binary
+// knows about, used to load MCP_TOOLS_<GROUP> enablement via
+// config.LoadEnabled regardless of which domains actually have any tools
+// registered yet.
+func Run(name, version, family, scope string, allowedTiers []registry.Tier, reg *registry.Registry, domains []string) {
 	showHelp := flag.Bool("help", false, "Show usage, or detailed help for a specific tool (with -help <tool>)")
 	showVersion := flag.Bool("version", false, "Print name and version")
 	listTools := flag.Bool("list-tools", false, "List every registered tool")
@@ -55,17 +58,17 @@ func Run(name, version, family, scope string, reg *registry.Registry, domains []
 			usage(name)
 		}
 	default:
-		runServer(name, version, family, scope, reg, domains)
+		runServer(name, version, family, scope, allowedTiers, reg, domains)
 	}
 }
 
-func runServer(name, version, family, scope string, reg *registry.Registry, domains []string) {
+func runServer(name, version, family, scope string, allowedTiers []registry.Tier, reg *registry.Registry, domains []string) {
 	enabled := config.LoadEnabled(domains)
 	s := server.NewMCPServer(name, version,
 		server.WithToolCapabilities(false),
 		server.WithRecovery(),
 	)
-	reg.RegisterWithServer(s, family, scope, enabled)
+	reg.RegisterWithServer(s, family, scope, allowedTiers, enabled)
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Fprintln(os.Stderr, "server error:", err)

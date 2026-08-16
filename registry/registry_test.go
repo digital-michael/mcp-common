@@ -97,7 +97,7 @@ func TestRegisterWithServerStampsMeta(t *testing.T) {
 	r.Add(testDef("ping"))
 
 	s := server.NewMCPServer("test", "0.0.0")
-	r.RegisterWithServer(s, "cortex", "local", nil)
+	r.RegisterWithServer(s, "cortex", "local", []Tier{TierLocal}, nil)
 
 	// mcp-go's MCPServer doesn't expose a direct tool-lookup accessor in
 	// this version, so registration success is verified indirectly via the
@@ -147,7 +147,7 @@ func TestRegisterWithServerSkipsInternalTier(t *testing.T) {
 	)
 
 	s := server.NewMCPServer("test", "0.0.0")
-	r.RegisterWithServer(s, "cortex", "local", nil)
+	r.RegisterWithServer(s, "cortex", "local", []Tier{TierLocal}, nil)
 }
 
 func TestRegisterWithServerRespectsEnabled(t *testing.T) {
@@ -161,9 +161,109 @@ func TestRegisterWithServerRespectsEnabled(t *testing.T) {
 
 	s := server.NewMCPServer("test", "0.0.0")
 	// admin domain explicitly disabled -- RegisterWithServer should skip it.
-	r.RegisterWithServer(s, "cortex", "local", map[string]bool{"admin": false})
+	// TierAdmin is allowed here so the enablement check, not the tier
+	// filter, is what's actually under test.
+	r.RegisterWithServer(s, "cortex", "local", []Tier{TierAdmin}, map[string]bool{"admin": false})
 	// No direct assertion available without a running transport; this test
 	// exists primarily to confirm RegisterWithServer doesn't panic/error
 	// when skipping a disabled domain. Full behavior is covered by the
 	// live JSON-RPC smoke test in examples/echo-server.
+}
+
+// TestFilterForRegistrationByTier is the real assertion the tier-filtering
+// mechanism needs: filterForRegistration is a pure function (no
+// *server.MCPServer involved), so exact registered/excluded subsets can be
+// asserted directly, unlike RegisterWithServer's own tests above.
+func TestFilterForRegistrationByTier(t *testing.T) {
+	localDef := ToolDef{
+		Tool:    mcp.NewTool("local-tool", mcp.WithDescription("test")),
+		Handler: pingHandler,
+		Domain:  "diagnostics",
+		Tier:    TierLocal,
+	}
+	membershipDef := ToolDef{
+		Tool:    mcp.NewTool("membership-tool", mcp.WithDescription("test")),
+		Handler: pingHandler,
+		Domain:  "diagnostics",
+		Tier:    TierMembership,
+	}
+	adminDef := ToolDef{
+		Tool:    mcp.NewTool("admin-tool", mcp.WithDescription("test")),
+		Handler: pingHandler,
+		Domain:  "diagnostics",
+		Tier:    TierAdmin,
+	}
+	internalDef := ToolDef{
+		Tool:    mcp.NewTool("internal-tool", mcp.WithDescription("test")),
+		Handler: pingHandler,
+		Domain:  "diagnostics",
+		Tier:    TierInternal,
+	}
+
+	newFixture := func() *Registry {
+		r := New()
+		r.Add(localDef, membershipDef, adminDef, internalDef)
+		return r
+	}
+
+	names := func(defs []ToolDef) []string {
+		out := make([]string, len(defs))
+		for i, d := range defs {
+			out[i] = d.Tool.Name
+		}
+		return out
+	}
+
+	assertNames := func(t *testing.T, got []ToolDef, want ...string) {
+		t.Helper()
+		gotNames := names(got)
+		if len(gotNames) != len(want) {
+			t.Fatalf("filterForRegistration() = %v, want %v", gotNames, want)
+		}
+		for i, w := range want {
+			if gotNames[i] != w {
+				t.Fatalf("filterForRegistration() = %v, want %v", gotNames, want)
+			}
+		}
+	}
+
+	t.Run("local scope allows only Local", func(t *testing.T) {
+		r := newFixture()
+		got := r.filterForRegistration([]Tier{TierLocal}, nil)
+		assertNames(t, got, "local-tool")
+	})
+
+	t.Run("membership scope allows Local and Membership", func(t *testing.T) {
+		r := newFixture()
+		got := r.filterForRegistration([]Tier{TierLocal, TierMembership}, nil)
+		assertNames(t, got, "local-tool", "membership-tool")
+	})
+
+	t.Run("admin scope allows only Admin", func(t *testing.T) {
+		r := newFixture()
+		got := r.filterForRegistration([]Tier{TierAdmin}, nil)
+		assertNames(t, got, "admin-tool")
+	})
+
+	t.Run("nil allowedTiers registers nothing -- fail closed", func(t *testing.T) {
+		r := newFixture()
+		got := r.filterForRegistration(nil, nil)
+		if len(got) != 0 {
+			t.Fatalf("filterForRegistration(nil, nil) = %v, want empty", names(got))
+		}
+	})
+
+	t.Run("TierInternal is excluded even when explicitly allowed", func(t *testing.T) {
+		r := newFixture()
+		got := r.filterForRegistration([]Tier{TierLocal, TierMembership, TierAdmin, TierInternal}, nil)
+		assertNames(t, got, "local-tool", "membership-tool", "admin-tool")
+	})
+
+	t.Run("tier filter and enablement compose", func(t *testing.T) {
+		r := newFixture()
+		got := r.filterForRegistration([]Tier{TierLocal, TierMembership}, map[string]bool{"diagnostics": false})
+		if len(got) != 0 {
+			t.Fatalf("filterForRegistration() with domain disabled = %v, want empty", names(got))
+		}
+	})
 }
