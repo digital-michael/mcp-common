@@ -24,19 +24,22 @@ import (
 type Tier string
 
 const (
-	TierInternal  Tier = "Internal"
-	TierLocal     Tier = "Local"
-	TierFederated Tier = "Federated"
-	TierGlobal    Tier = "Global"
-	// TierDocuments covers document-format manipulation support tools
-	// (spreadsheet/conversion) -- kept distinct from TierLocal because these
-	// tools have a different risk/capability profile (calls to external
-	// local services, plus file staging) rather than raw filesystem access.
-	// Visibility is the same as TierLocal today (registered under the local
-	// and all build tags only) -- a labeled category for clarity and future
-	// independent tuning, not yet a distinct visibility rule.
-	TierDocuments Tier = "Documents"
-	TierAdmin     Tier = "Admin"
+	TierInternal Tier = "Internal"
+	TierLocal    Tier = "Local"
+	// TierMembership identifies a tool only callable from a trusted peer
+	// workstation within the fleet -- not this machine, not the open
+	// internet/a third-party. Renamed from "Federated" (2026-08-16): that
+	// name collided with unrelated meanings ("federated learning" in ML,
+	// generic "any multi-node topology" in distributed systems) and caused
+	// real confusion this session (conflated with a build tag, with
+	// "Global," with inbound vs. outbound). "Membership" also matches
+	// existing vocabulary already used elsewhere in this stack
+	// (cortex-stack's litellm.yaml `cortex-membership-cloud-*` alias
+	// ladder), so the whole family now uses one word for this concept.
+	// Reserved -- no tool occupies this tier yet.
+	TierMembership Tier = "Membership"
+	TierGlobal     Tier = "Global"
+	TierAdmin      Tier = "Admin"
 )
 
 // HandlerFunc is the standard mcp-go tool handler signature.

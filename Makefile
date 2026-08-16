@@ -1,5 +1,5 @@
 # Library packages (registry/config/bootstrap) are tag-agnostic by design --
-# examples/echo-server is NOT, it requires exactly one of local/federated/global
+# examples/echo-server is NOT, it requires exactly one of local/membership/global
 # (see examples/echo-server/scope_*.go) and fails to compile with none, on
 # purpose. build/test are scoped accordingly rather than running a bare
 # `go build ./...`/`go test ./...`, which would break on the example, not
@@ -22,11 +22,11 @@ LDFLAGS       := -X $(BUILDINFO_PKG).Version=$(VERSION) -X $(BUILDINFO_PKG).Buil
 .DEFAULT_GOAL := build
 
 .PHONY: build
-build: ## Build the echo-server example for each scope variant (local/federated/global)
+build: ## Build the echo-server example for each scope variant (local/membership/global)
 	@mkdir -p $(BIN)
-	go build -ldflags "$(LDFLAGS)" -tags local     -o $(BIN)/echo-server-local     $(EXAMPLE)
-	go build -ldflags "$(LDFLAGS)" -tags federated -o $(BIN)/echo-server-federated $(EXAMPLE)
-	go build -ldflags "$(LDFLAGS)" -tags global    -o $(BIN)/echo-server-global    $(EXAMPLE)
+	go build -ldflags "$(LDFLAGS)" -tags local      -o $(BIN)/echo-server-local      $(EXAMPLE)
+	go build -ldflags "$(LDFLAGS)" -tags membership -o $(BIN)/echo-server-membership $(EXAMPLE)
+	go build -ldflags "$(LDFLAGS)" -tags global     -o $(BIN)/echo-server-global     $(EXAMPLE)
 	@echo "Built with version $(VERSION)+$(BUILD_ID)"
 
 .PHONY: test
@@ -34,7 +34,7 @@ test: ## go vet + go test -- library packages need no tag, the example is checke
 	go vet $(LIB_PKGS)
 	go test $(LIB_PKGS)
 	go vet -tags local ./...
-	go vet -tags federated ./...
+	go vet -tags membership ./...
 	go vet -tags global ./...
 	go test -tags local ./...
 
