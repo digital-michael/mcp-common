@@ -28,6 +28,14 @@ const (
 	TierLocal     Tier = "Local"
 	TierFederated Tier = "Federated"
 	TierGlobal    Tier = "Global"
+	// TierDocuments covers document-format manipulation support tools
+	// (spreadsheet/conversion) -- kept distinct from TierLocal because these
+	// tools have a different risk/capability profile (calls to external
+	// local services, plus file staging) rather than raw filesystem access.
+	// Visibility is the same as TierLocal today (registered under the local
+	// and all build tags only) -- a labeled category for clarity and future
+	// independent tuning, not yet a distinct visibility rule.
+	TierDocuments Tier = "Documents"
 	TierAdmin     Tier = "Admin"
 )
 
