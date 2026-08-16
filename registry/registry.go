@@ -183,6 +183,16 @@ func (r *Registry) Run(ctx context.Context, name string, args map[string]any) (*
 // reachable only via direct Run") -- Run() stays tier-blind by design, so
 // this is the only enforcement point for that guarantee.
 func (r *Registry) RegisterWithServer(s *server.MCPServer, family, scope string, enabled map[string]bool) {
+	// TODO: membership authentication goes here. TierMembership currently
+	// has no enforcement of any kind (unlike TierInternal, skipped
+	// unconditionally below) -- a Membership-tier tool is exposed to
+	// whatever caller reaches this connection, with no verification that
+	// caller is actually a trusted peer. litellm.yaml's mcp_servers config
+	// still has allow_all_keys: true, and real per-caller authz (BL-008-012)
+	// is still blocked. Deferred deliberately (operator, 2026-08-16) -- not
+	// being addressed now, but the gap is real and this is where the check
+	// would go once it exists. See docs/mcp-local/tool-access-tiers.md and
+	// ledger epic 05fdfa65.
 	for _, def := range r.defs {
 		if def.Tier == TierInternal {
 			continue
