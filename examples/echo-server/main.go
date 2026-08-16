@@ -35,7 +35,7 @@ func main() {
 		),
 		Handler: echoHandler,
 		Domain:  "diagnostics",
-		Tier:    registry.TierGlobal,
+		Tier:    registry.TierLocal,
 		CLI: registry.CLIInfo{
 			Args:      "message: string (required)",
 			Params:    []string{"message"},
@@ -46,7 +46,7 @@ func main() {
 	// Proves the ldflags-across-package-boundary mechanism works before
 	// mcp-admin ever depends on it -- see the Makefile's build target for
 	// the actual -X flags that stamp buildinfo.Version/BuildID.
-	reg.Add(buildinfo.Tool("echo-server", registry.TierGlobal))
+	reg.Add(buildinfo.Tool("echo-server", registry.TierLocal))
 
 	bootstrap.Run("echo-server", buildinfo.Full(), family, BuildScope, reg, []string{"diagnostics"})
 }

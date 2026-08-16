@@ -29,7 +29,7 @@ func Full() string {
 
 // Tool returns a ready-to-Add() "version" ToolDef reporting binaryName's
 // build info. tier is caller-supplied -- different consumers may want this
-// gated differently (a Global tool in one binary, Admin-only in another),
+// gated differently (a Local tool in one binary, Admin-only in another),
 // so buildinfo itself stays tier-agnostic rather than assuming one answer.
 func Tool(binaryName string, tier registry.Tier) registry.ToolDef {
 	return registry.ToolDef{

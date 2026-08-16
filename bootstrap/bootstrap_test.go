@@ -20,7 +20,7 @@ func testRegistry() *registry.Registry {
 		Tool:    mcp.NewTool("greet", mcp.WithDescription("test tool")),
 		Handler: testHandler,
 		Domain:  "diagnostics",
-		Tier:    registry.TierGlobal,
+		Tier:    registry.TierLocal,
 		CLI: registry.CLIInfo{
 			Args:      "name: string (required)",
 			Params:    []string{"name"},

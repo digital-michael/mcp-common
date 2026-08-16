@@ -25,7 +25,15 @@ type Tier string
 
 const (
 	TierInternal Tier = "Internal"
-	TierLocal    Tier = "Local"
+	// TierLocal is the default/base tier: a tool callable from this machine.
+	// Absorbed "Global" (2026-08-16) -- once Membership is understood as a
+	// superset that trivially includes local access (you're a member of
+	// your own network), a separate "safe everywhere" middle tier added no
+	// real distinction: nothing was ever Membership-only, so every
+	// previously-"Global" tool was already just as available as a Local
+	// one. Local is now the default most tools get; Membership is reserved
+	// for genuinely peer-only capability, not a promotion every tool needs.
+	TierLocal Tier = "Local"
 	// TierMembership identifies a tool only callable from a trusted peer
 	// workstation within the fleet -- not this machine, not the open
 	// internet/a third-party. Renamed from "Federated" (2026-08-16): that
@@ -38,8 +46,32 @@ const (
 	// ladder), so the whole family now uses one word for this concept.
 	// Reserved -- no tool occupies this tier yet.
 	TierMembership Tier = "Membership"
-	TierGlobal     Tier = "Global"
 	TierAdmin      Tier = "Admin"
+)
+
+// Reach classifies what a tool's own execution touches, independent of Tier
+// (who is allowed to call it). Added 2026-08-16 after a concrete case Tier
+// alone couldn't express: a future remote-enabled `delegate` tool should
+// stay Local/Global-callable (a purely local caller is its primary use
+// case) while its own execution can reach a trusted peer's infrastructure
+// -- tagging the TOOL itself Membership under the inbound-only Tier
+// definition would make it unreachable from that primary caller. Tier
+// answers "who can call this"; Reach answers "what does calling it touch."
+type Reach string
+
+const (
+	// ReachLocal: stays on this machine -- filesystem, OS, sibling local
+	// processes (e.g. spreadsheet-services). The default for nearly every
+	// tool today; nothing currently reaches further.
+	ReachLocal Reach = "Local"
+	// ReachMembership: touches managed membership infrastructure -- shared
+	// across trusted peer workstations (peer LiteLLM/model routing, a
+	// shared DB/cache, team chat/workspaces). No tool uses this yet --
+	// federated LiteLLM routing itself is still backlog (ledger a800512b).
+	ReachMembership Reach = "Membership"
+	// ReachCloud: touches a third-party, unmanaged external provider --
+	// data leaves the membership boundary entirely. No tool uses this yet.
+	ReachCloud Reach = "Cloud"
 )
 
 // HandlerFunc is the standard mcp-go tool handler signature.
@@ -59,12 +91,13 @@ type CLIInfo struct {
 // ToolDef is one tool's complete registration: its real mcp.Tool (name,
 // description, and full input schema, built the same way as today via
 // mcp.NewTool(name, opts...)), its handler, which domain it belongs to, its
-// access tier, and its CLI rendering hints.
+// access tier, its outbound reach, and its CLI rendering hints.
 type ToolDef struct {
 	Tool    mcp.Tool
 	Handler HandlerFunc
 	Domain  string
 	Tier    Tier
+	Reach   Reach
 	CLI     CLIInfo
 }
 
@@ -102,7 +135,7 @@ func (r *Registry) Add(defs ...ToolDef) {
 // info, in registration order. Unlike mcp-local's Describe(), this always
 // includes every tool regardless of tier or enablement -- callers filter as
 // needed; Describe itself never hides anything, since -help/-run should
-// work even for a disabled or non-Global tool run directly.
+// work even for a disabled or restricted-tier tool run directly.
 func (r *Registry) Describe() []ToolDef {
 	out := make([]ToolDef, len(r.defs))
 	copy(out, r.defs)

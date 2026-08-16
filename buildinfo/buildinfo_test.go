@@ -45,7 +45,7 @@ func TestToolHandlerReportsBinaryName(t *testing.T) {
 	defer func() { Version, BuildID = origVersion, origBuildID }()
 	Version, BuildID = "9.9.9", "test-build"
 
-	def := Tool("my-binary", registry.TierGlobal)
+	def := Tool("my-binary", registry.TierLocal)
 	result, err := def.Handler(context.Background(), mcp.CallToolRequest{})
 	if err != nil {
 		t.Fatalf("Handler error = %v", err)
@@ -61,12 +61,12 @@ func TestToolHandlerReportsBinaryName(t *testing.T) {
 
 func TestToolDifferentTiersIndependent(t *testing.T) {
 	admin := Tool("bin-a", registry.TierAdmin)
-	global := Tool("bin-b", registry.TierGlobal)
+	global := Tool("bin-b", registry.TierLocal)
 
 	if admin.Tier != registry.TierAdmin {
 		t.Errorf("admin.Tier = %q, want Admin", admin.Tier)
 	}
-	if global.Tier != registry.TierGlobal {
+	if global.Tier != registry.TierLocal {
 		t.Errorf("global.Tier = %q, want Global", global.Tier)
 	}
 }

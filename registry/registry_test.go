@@ -17,7 +17,7 @@ func testDef(name string) ToolDef {
 		Tool:    mcp.NewTool(name, mcp.WithDescription("test tool "+name)),
 		Handler: pingHandler,
 		Domain:  "diagnostics",
-		Tier:    TierGlobal,
+		Tier:    TierLocal,
 	}
 }
 
