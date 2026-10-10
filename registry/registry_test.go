@@ -2,6 +2,7 @@ package registry
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
@@ -266,4 +267,72 @@ func TestFilterForRegistrationByTier(t *testing.T) {
 			t.Fatalf("filterForRegistration() with domain disabled = %v, want empty", names(got))
 		}
 	})
+}
+
+func TestClassifyStampsAnnotationsAndPrefix(t *testing.T) {
+	r := New()
+	r.Add(testDef("look"), testDef("save"), testDef("erase"), testDef("send"))
+	err := r.Classify(map[string]Access{
+		"look":  {Class: Read},
+		"save":  {Class: Write},
+		"erase": {Class: Write, Destructive: true},
+		"send":  {Class: Publish},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string][4]bool{ // read-only, destructive, idempotent, open-world
+		"look":  {true, false, true, false},
+		"save":  {false, false, false, false},
+		"erase": {false, true, false, false},
+		"send":  {false, false, false, true},
+	}
+	prefix := map[string]string{"look": "[READ] ", "save": "[WRITE] ", "erase": "[WRITE] ", "send": "[PUBLISH] "}
+	for _, def := range r.Describe() {
+		a := def.Tool.Annotations
+		got := [4]bool{*a.ReadOnlyHint, *a.DestructiveHint, *a.IdempotentHint, *a.OpenWorldHint}
+		if got != want[def.Tool.Name] {
+			t.Errorf("%s: hints %v, want %v", def.Tool.Name, got, want[def.Tool.Name])
+		}
+		if !strings.HasPrefix(def.Tool.Description, prefix[def.Tool.Name]) {
+			t.Errorf("%s: description %q lacks prefix %q", def.Tool.Name, def.Tool.Description, prefix[def.Tool.Name])
+		}
+	}
+	// Classifying twice must not stack prefixes.
+	if err := r.Classify(map[string]Access{"look": {Class: Read}, "save": {Class: Write}, "erase": {Class: Write, Destructive: true}, "send": {Class: Publish}}); err != nil {
+		t.Fatal(err)
+	}
+	if d, _ := r.FindMeta("look"); strings.Count(d.Tool.Description, "[READ]") != 1 {
+		t.Errorf("prefix stacked: %q", d.Tool.Description)
+	}
+}
+
+func TestClassifyIsFailClosed(t *testing.T) {
+	r := New()
+	r.Add(testDef("a"), testDef("b"), testDef("c"))
+	err := r.Classify(map[string]Access{"a": {Class: Read}})
+	if err == nil || !strings.Contains(err.Error(), "b, c") {
+		t.Fatalf("want an error naming b and c, got %v", err)
+	}
+	// A tool classified elsewhere is left alone, annotations untouched.
+	r2 := New()
+	r2.Add(testDef("own"), testDef("a"))
+	if err := r2.Classify(map[string]Access{"a": {Class: Read}}, "own"); err != nil {
+		t.Fatalf("classifiedElsewhere should be skipped: %v", err)
+	}
+	if d, _ := r2.FindMeta("own"); strings.HasPrefix(d.Tool.Description, "[") {
+		t.Errorf("classifiedElsewhere tool was stamped: %q", d.Tool.Description)
+	}
+	if err := r.Classify(map[string]Access{"a": {Class: "bogus"}, "b": {Class: Read}, "c": {Class: Read}}); err == nil {
+		t.Error("an unknown class should be refused")
+	}
+}
+
+func TestUnclassifiedFindsStaleEntries(t *testing.T) {
+	r := New()
+	r.Add(testDef("a"))
+	got := r.Unclassified(map[string]Access{"a": {Class: Read}, "gone": {Class: Read}})
+	if len(got) != 1 || got[0] != "gone" {
+		t.Errorf("Unclassified = %v, want [gone]", got)
+	}
 }
