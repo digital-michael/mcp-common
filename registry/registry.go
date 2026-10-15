@@ -208,17 +208,31 @@ func (r *Registry) RegisterWithServer(s *server.MCPServer, family, scope string,
 	// go once it exists. See docs/mcp-local/tool-access-tiers.md and ledger
 	// epic 05fdfa65.
 	for _, def := range r.filterForRegistration(allowedTiers, enabled) {
-		t := def.Tool
-		if t.Meta == nil {
-			t.Meta = &mcp.Meta{}
-		}
-		if t.Meta.AdditionalFields == nil {
-			t.Meta.AdditionalFields = make(map[string]any)
-		}
-		t.Meta.AdditionalFields["family"] = family
-		t.Meta.AdditionalFields["scope"] = scope
-		s.AddTool(t, server.ToolHandlerFunc(def.Handler))
+		s.AddTool(stampMeta(def.Tool, family, scope, def.Domain), server.ToolHandlerFunc(def.Handler))
 	}
+}
+
+// stampMeta returns t with _meta.family, _meta.scope and _meta.domain set.
+// The domain lets a client match a tool to a scope such as "ledger:read"
+// (a domain and an access class); a tool listing carries the class in its
+// annotations but, before this, nothing carried the domain. A tool with an
+// empty domain is stamped with an empty one, which a scope-matching client
+// must treat as "no domain" and refuse (default deny).
+func stampMeta(t mcp.Tool, family, scope, domain string) mcp.Tool {
+	meta := mcp.Meta{}
+	if t.Meta != nil {
+		meta = *t.Meta
+	}
+	fields := make(map[string]any, len(meta.AdditionalFields)+3)
+	for k, v := range meta.AdditionalFields {
+		fields[k] = v
+	}
+	fields["family"] = family
+	fields["scope"] = scope
+	fields["domain"] = domain
+	meta.AdditionalFields = fields
+	t.Meta = &meta
+	return t
 }
 
 // filterForRegistration returns, in registration order, the subset of defs

@@ -336,3 +336,27 @@ func TestUnclassifiedFindsStaleEntries(t *testing.T) {
 		t.Errorf("Unclassified = %v, want [gone]", got)
 	}
 }
+
+func TestStampMetaCarriesFamilyScopeAndDomain(t *testing.T) {
+	orig := mcp.NewTool("x")
+	got := stampMeta(orig, "cortex", "local", "ledger")
+	f := got.Meta.AdditionalFields
+	if f["family"] != "cortex" || f["scope"] != "local" || f["domain"] != "ledger" {
+		t.Errorf("meta = %v", f)
+	}
+	if orig.Meta != nil {
+		t.Error("stampMeta modified its argument")
+	}
+}
+
+func TestStampMetaKeepsExistingFieldsAndDoesNotShareTheMap(t *testing.T) {
+	tool := mcp.NewTool("x")
+	tool.Meta = &mcp.Meta{AdditionalFields: map[string]any{"keep": "me"}}
+	got := stampMeta(tool, "cortex", "all", "git")
+	if got.Meta.AdditionalFields["keep"] != "me" || got.Meta.AdditionalFields["domain"] != "git" {
+		t.Errorf("meta = %v", got.Meta.AdditionalFields)
+	}
+	if _, leaked := tool.Meta.AdditionalFields["domain"]; leaked {
+		t.Error("the caller's map was modified")
+	}
+}
