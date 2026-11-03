@@ -1,11 +1,11 @@
 // Package slots decides how many requests the model engine serves at once, the one number the agent queue and the chat's own
 // scheduler both depend on.
 //
-// The setting is CORTEX_MODEL_SLOTS (default 1): how many slots the operator asks for, meant to equal the engine's own parallelism
+// The setting is DATUM_MODEL_SLOTS (default 1): how many slots the operator asks for, meant to equal the engine's own parallelism
 // (OLLAMA_NUM_PARALLEL). It is governed by the hardware: each extra slot holds its own context in memory, so a machine that cannot
 // afford another model-sized working set must not be asked to run one, whatever the setting says. The effective count is the smaller
 // of what was asked and what the hardware allows. The hardware allowance is a rule of thumb by total memory (Tiers below), which the
-// operator can override for a machine known to be more capable with CORTEX_MODEL_SLOTS_MAX; it is never above the request.
+// operator can override for a machine known to be more capable with DATUM_MODEL_SLOTS_MAX; it is never above the request.
 //
 // Measured on the 16 GiB Apple-silicon laptop this project is developed on (Ollama's load log, 2026-10-22): the 9B model at a
 // 32,768-token window holds 9.1 GiB, the 4B 6.5 GiB, of the 11.8 GiB the engine may use; a second slot would need roughly the context
@@ -24,9 +24,9 @@ import (
 
 const (
 	// EnvRequested is the number of slots asked for. It should equal the engine's own parallelism.
-	EnvRequested = "CORTEX_MODEL_SLOTS"
+	EnvRequested = "DATUM_MODEL_SLOTS"
 	// EnvMax overrides the hardware allowance for a machine the operator knows to be more capable.
-	EnvMax = "CORTEX_MODEL_SLOTS_MAX"
+	EnvMax = "DATUM_MODEL_SLOTS_MAX"
 )
 
 const gib = int64(1) << 30
@@ -38,7 +38,7 @@ type Tier struct {
 }
 
 // Tiers is the hardware governance, by total memory. A row is a rule of thumb, not a measurement of every model: change a row (or set
-// CORTEX_MODEL_SLOTS_MAX) when a machine class proves otherwise.
+// DATUM_MODEL_SLOTS_MAX) when a machine class proves otherwise.
 var Tiers = []Tier{
 	{UpToBytes: 24 * gib, Max: 1},
 	{UpToBytes: 48 * gib, Max: 2},
@@ -57,7 +57,7 @@ type Result struct {
 
 // Requested reads the setting. An absent value is 1; an invalid one (not a whole number of at least 1) is 1, and says so.
 func Requested(getenv func(string) string) (int, string) {
-	raw := strings.TrimSpace(getenv(EnvRequested))
+	raw := strings.TrimSpace(lookup(getenv, EnvRequested))
 	if raw == "" {
 		return 1, ""
 	}
@@ -70,7 +70,7 @@ func Requested(getenv func(string) string) (int, string) {
 
 // MaxFor is the hardware allowance for a machine with this much memory (0 when it could not be read: one slot, the safe answer).
 func MaxFor(totalBytes int64, getenv func(string) string) (int, string) {
-	if raw := strings.TrimSpace(getenv(EnvMax)); raw != "" {
+	if raw := strings.TrimSpace(lookup(getenv, EnvMax)); raw != "" {
 		if n, err := strconv.Atoi(raw); err == nil && n >= 1 {
 			return n, fmt.Sprintf("the hardware allowance is %d, set by %s", n, EnvMax)
 		}
@@ -131,4 +131,12 @@ func HostMemoryBytes() int64 {
 		}
 	}
 	return 0
+}
+
+// lookup reads a DATUM_ variable, falling back to the CORTEX_ name used until 2026-11-03 when the new one is unset or empty.
+func lookup(getenv func(string) string, name string) string {
+	if v := getenv(name); strings.TrimSpace(v) != "" {
+		return v
+	}
+	return getenv("CORTEX_" + strings.TrimPrefix(name, "DATUM_"))
 }

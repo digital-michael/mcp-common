@@ -88,3 +88,14 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+func TestLegacyNames(t *testing.T) {
+	r := Resolve(env(map[string]string{"CORTEX_MODEL_SLOTS": "2", "CORTEX_MODEL_SLOTS_MAX": "2"}), mem(128))
+	if r.Effective != 2 {
+		t.Fatalf("legacy names: got %d slots", r.Effective)
+	}
+	r = Resolve(env(map[string]string{EnvRequested: "3", "CORTEX_MODEL_SLOTS": "1"}), mem(128))
+	if r.Effective != 3 {
+		t.Fatalf("new name must win: got %d slots", r.Effective)
+	}
+}
