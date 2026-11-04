@@ -42,7 +42,7 @@ const (
 	// real confusion this session (conflated with a build tag, with
 	// "Global," with inbound vs. outbound). "Membership" also matches
 	// existing vocabulary already used elsewhere in this stack
-	// (cortex-stack's litellm.yaml `cortex-membership-cloud-*` alias
+	// (datum-core/stack's litellm.yaml `cortex-membership-cloud-*` alias
 	// ladder), so the whole family now uses one word for this concept.
 	// Reserved -- no tool occupies this tier yet.
 	TierMembership Tier = "Membership"

@@ -96,6 +96,6 @@ help: ## List available targets
 # 	claude mcp list
 #
 # A real consumer binary will likely also want LiteLLM registration --
-# mcp-local's `register-litellm` target (calls cortex-stack's
+# mcp-local's `register-litellm` target (calls datum-core/stack's
 # scripts/register-litellm-mcp.py) is the reference for that; not included
-# here since it assumes a cortex-stack checkout this library doesn't need.
+# here since it assumes a datum-core/stack checkout this library doesn't need.
