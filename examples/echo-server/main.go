@@ -3,7 +3,7 @@
 // demonstrates the intended build-tag pattern: BuildScope (defined in
 // scope_local.go/scope_membership.go/scope_global.go, one active per build)
 // lives here, in the consuming binary -- mcp-common itself never knows what
-// "cortex" or "local"/"membership"/"global" mean, it only stamps whatever
+// "datum" or "local"/"membership"/"global" mean, it only stamps whatever
 // family/scope strings it's given.
 package main
 
@@ -19,7 +19,7 @@ import (
 
 // family is this binary's own identity, not mcp-common's -- a real consumer
 // (mcp-local, mcp-admin) would set this to whatever product name applies.
-const family = "cortex-example"
+const family = "datum-example"
 
 func echoHandler(_ context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	message, _ := req.GetArguments()["message"].(string)
