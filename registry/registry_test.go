@@ -98,7 +98,7 @@ func TestRegisterWithServerStampsMeta(t *testing.T) {
 	r.Add(testDef("ping"))
 
 	s := server.NewMCPServer("test", "0.0.0")
-	r.RegisterWithServer(s, "cortex", "local", []Tier{TierLocal}, nil)
+	r.RegisterWithServer(s, "datum", "local", []Tier{TierLocal}, nil)
 
 	// mcp-go's MCPServer doesn't expose a direct tool-lookup accessor in
 	// this version, so registration success is verified indirectly via the
@@ -115,11 +115,11 @@ func TestMetaStampingLogic(t *testing.T) {
 	if t2.Meta.AdditionalFields == nil {
 		t2.Meta.AdditionalFields = make(map[string]any)
 	}
-	t2.Meta.AdditionalFields["family"] = "cortex"
+	t2.Meta.AdditionalFields["family"] = "datum"
 	t2.Meta.AdditionalFields["scope"] = "local"
 
-	if got := t2.Meta.AdditionalFields["family"]; got != "cortex" {
-		t.Fatalf("family = %v, want cortex", got)
+	if got := t2.Meta.AdditionalFields["family"]; got != "datum" {
+		t.Fatalf("family = %v, want datum", got)
 	}
 	if got := t2.Meta.AdditionalFields["scope"]; got != "local" {
 		t.Fatalf("scope = %v, want local", got)
@@ -148,7 +148,7 @@ func TestRegisterWithServerSkipsInternalTier(t *testing.T) {
 	)
 
 	s := server.NewMCPServer("test", "0.0.0")
-	r.RegisterWithServer(s, "cortex", "local", []Tier{TierLocal}, nil)
+	r.RegisterWithServer(s, "datum", "local", []Tier{TierLocal}, nil)
 }
 
 func TestRegisterWithServerRespectsEnabled(t *testing.T) {
@@ -164,7 +164,7 @@ func TestRegisterWithServerRespectsEnabled(t *testing.T) {
 	// admin domain explicitly disabled -- RegisterWithServer should skip it.
 	// TierAdmin is allowed here so the enablement check, not the tier
 	// filter, is what's actually under test.
-	r.RegisterWithServer(s, "cortex", "local", []Tier{TierAdmin}, map[string]bool{"admin": false})
+	r.RegisterWithServer(s, "datum", "local", []Tier{TierAdmin}, map[string]bool{"admin": false})
 	// No direct assertion available without a running transport; this test
 	// exists primarily to confirm RegisterWithServer doesn't panic/error
 	// when skipping a disabled domain. Full behavior is covered by the
@@ -339,9 +339,9 @@ func TestUnclassifiedFindsStaleEntries(t *testing.T) {
 
 func TestStampMetaCarriesFamilyScopeAndDomain(t *testing.T) {
 	orig := mcp.NewTool("x")
-	got := stampMeta(orig, "cortex", "local", "ledger")
+	got := stampMeta(orig, "datum", "local", "ledger")
 	f := got.Meta.AdditionalFields
-	if f["family"] != "cortex" || f["scope"] != "local" || f["domain"] != "ledger" {
+	if f["family"] != "datum" || f["scope"] != "local" || f["domain"] != "ledger" {
 		t.Errorf("meta = %v", f)
 	}
 	if orig.Meta != nil {
@@ -352,7 +352,7 @@ func TestStampMetaCarriesFamilyScopeAndDomain(t *testing.T) {
 func TestStampMetaKeepsExistingFieldsAndDoesNotShareTheMap(t *testing.T) {
 	tool := mcp.NewTool("x")
 	tool.Meta = &mcp.Meta{AdditionalFields: map[string]any{"keep": "me"}}
-	got := stampMeta(tool, "cortex", "all", "git")
+	got := stampMeta(tool, "datum", "all", "git")
 	if got.Meta.AdditionalFields["keep"] != "me" || got.Meta.AdditionalFields["domain"] != "git" {
 		t.Errorf("meta = %v", got.Meta.AdditionalFields)
 	}
