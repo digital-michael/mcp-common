@@ -89,13 +89,15 @@ func contains(s, sub string) bool {
 	return false
 }
 
-func TestLegacyNames(t *testing.T) {
-	r := Resolve(env(map[string]string{"CORTEX_MODEL_SLOTS": "2", "CORTEX_MODEL_SLOTS_MAX": "2"}), mem(128))
-	if r.Effective != 2 {
-		t.Fatalf("legacy names: got %d slots", r.Effective)
+// The CORTEX_ names were read until 2026-11-03 and are now ignored: only the DATUM_ names count.
+func TestLegacyNamesAreIgnored(t *testing.T) {
+	base := Resolve(env(nil), mem(128))
+	r := Resolve(env(map[string]string{"CORTEX_MODEL_SLOTS": "1", "CORTEX_MODEL_SLOTS_MAX": "1"}), mem(128))
+	if r.Effective != base.Effective || r.Requested != base.Requested {
+		t.Fatalf("legacy names must be ignored: got %+v, want the unset result %+v", r, base)
 	}
 	r = Resolve(env(map[string]string{EnvRequested: "3", "CORTEX_MODEL_SLOTS": "1"}), mem(128))
 	if r.Effective != 3 {
-		t.Fatalf("new name must win: got %d slots", r.Effective)
+		t.Fatalf("the new name must be read: got %d slots", r.Effective)
 	}
 }

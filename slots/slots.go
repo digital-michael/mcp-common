@@ -133,10 +133,10 @@ func HostMemoryBytes() int64 {
 	return 0
 }
 
-// lookup reads a DATUM_ variable, falling back to the CORTEX_ name used until 2026-11-03 when the new one is unset or empty.
+// lookup reads a DATUM_ variable; an unset or blank one is empty. (The CORTEX_ names used until 2026-11-03 are no longer read.)
 func lookup(getenv func(string) string, name string) string {
 	if v := getenv(name); strings.TrimSpace(v) != "" {
 		return v
 	}
-	return getenv("CORTEX_" + strings.TrimPrefix(name, "DATUM_"))
+	return ""
 }
