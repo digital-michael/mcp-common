@@ -34,8 +34,8 @@ const (
 	// real confusion this session (conflated with a build tag, with
 	// "Global," with inbound vs. outbound). "Membership" also matches
 	// existing vocabulary already used elsewhere in this stack
-	// (datum-core/stack's litellm.yaml `datum-membership-cloud-*` alias
-	// ladder), so the whole family now uses one word for this concept.
+	// (the model gateway's `datum-membership-cloud-*` alias ladder), so the
+	// whole family now uses one word for this concept.
 	// Reserved -- no tool occupies this tier yet.
 	TierMembership Tier = "Membership"
 	TierAdmin      Tier = "Admin"
@@ -59,7 +59,7 @@ const (
 	// ReachMembership: touches managed membership infrastructure -- shared
 	// across trusted peer workstations (peer LiteLLM/model routing, a
 	// shared DB/cache, team chat/workspaces). No tool uses this yet --
-	// federated LiteLLM routing itself is still backlog (ledger a800512b).
+	// routing models through a peer's gateway does not exist yet.
 	ReachMembership Reach = "Membership"
 	// ReachCloud: touches a third-party, unmanaged external provider --
 	// data leaves the membership boundary entirely. No tool uses this yet.
@@ -193,12 +193,10 @@ func (r *Registry) RegisterWithServer(s *server.MCPServer, family, scope string,
 	// not who's allowed to connect to it) -- a Membership-tier tool, once
 	// one exists and is registered, is exposed to whatever caller reaches
 	// this connection, with no verification that caller is actually a
-	// trusted peer. litellm.yaml's mcp_servers config still has
-	// allow_all_keys: true, and real per-caller authz (BL-008-012) is still
-	// blocked. Deferred deliberately (operator, 2026-08-16) -- not being
-	// addressed now, but the gap is real and this is where the check would
-	// go once it exists. See docs/mcp-local/tool-access-tiers.md and ledger
-	// epic 05fdfa65.
+	// trusted peer. The gateways that launch consuming servers do not yet
+	// authenticate callers per user either. Deferred deliberately: the gap is
+	// real, and this is where the check would go once per-caller
+	// authentication exists.
 	for _, def := range r.filterForRegistration(allowedTiers, enabled) {
 		s.AddTool(stampMeta(def.Tool, family, scope, def.Domain), server.ToolHandlerFunc(def.Handler))
 	}
