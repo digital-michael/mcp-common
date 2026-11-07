@@ -1,10 +1,3 @@
-// Command echo-server is a minimal real consumer of mcp-common, proving the
-// registry/config/bootstrap packages build and run end to end. It also
-// demonstrates the intended build-tag pattern: BuildScope (defined in
-// scope_local.go/scope_membership.go/scope_global.go, one active per build)
-// lives here, in the consuming binary -- mcp-common itself never knows what
-// "datum" or "local"/"membership"/"global" mean, it only stamps whatever
-// family/scope strings it's given.
 package main
 
 import (

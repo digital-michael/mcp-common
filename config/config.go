@@ -1,8 +1,3 @@
-// Package config loads per-domain enablement from the environment, the same
-// MCP_TOOLS_<GROUP> convention mcp-local already uses -- generalized from a
-// hardcoded struct field per domain (which needs a code change every time a
-// domain is added) into a name-keyed map driven by whatever domain names the
-// caller's registry actually has.
 package config
 
 import (

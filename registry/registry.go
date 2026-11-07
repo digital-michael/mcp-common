@@ -1,11 +1,3 @@
-// Package registry provides one generic tool registry for an MCP server,
-// replacing the pattern of hand-maintaining three separate, independently
-// drifting lists for the same tool set (a Describe()-style metadata slice, a
-// name->handler dispatch map, and a per-domain server-registration
-// call-list) -- confirmed as mcp-local's actual current shape before this
-// package was designed. A consumer registers each domain's tools once, as a
-// []ToolDef; tool listing, direct CLI dispatch, and MCP server registration
-// are all derived from that one registration, not re-authored separately.
 package registry
 
 import (
@@ -16,10 +8,10 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// Tier classifies who/where a tool may be called from. TierInternal is the
-// zero value deliberately -- an unset Tier is treated as Internal (never
-// registered with the MCP server, reachable only via direct Run), so a
-// forgotten classification makes a tool invisible rather than accidentally
+// Tier classifies who/where a tool may be called from. TierInternal tools are
+// never registered with the MCP server and are reachable only via direct Run.
+// An unset Tier is in no allow-list, so such a tool is not registered either:
+// a forgotten classification makes a tool invisible rather than accidentally
 // exposed.
 type Tier string
 

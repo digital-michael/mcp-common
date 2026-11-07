@@ -1,11 +1,3 @@
-// Package buildinfo is a shared version/build-id building block, so
-// consumers of mcp-common don't each hand-roll their own copy of the same
-// three lines. Version and BuildID are meant to be overridden at build time
-// via ldflags, e.g.:
-//
-//	go build -ldflags "-X github.com/digital-michael/mcp-common/buildinfo.Version=1.2.3 -X github.com/digital-michael/mcp-common/buildinfo.BuildID=20260815120000" ...
-//
-// A plain build with no ldflags yields "0.1.0+dev".
 package buildinfo
 
 import (

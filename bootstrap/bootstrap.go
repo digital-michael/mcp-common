@@ -1,7 +1,3 @@
-// Package bootstrap provides a reusable CLI + MCP-stdio-server entry point
-// for a binary built on a registry.Registry, generalizing mcp-local's
-// existing main.go harness (-list-tools/-run/-help/default server mode) so
-// each new consumer binary doesn't need to reimplement it.
 package bootstrap
 
 import (
