@@ -40,6 +40,7 @@ The dependency direction is one way: consumers import this module, and this modu
 | `config` | domain switches from `MCP_TOOLS_<DOMAIN>` |
 | `buildinfo` | version and build id set by linker flags, and a ready-made `version` tool |
 | `slots` | how many model requests are served at once, from `DATUM_MODEL_SLOTS` and the machine's memory |
+| `profiles` | named credential profiles (0600 JSON files) a tool reads at call time: environment first, then the profile, else a "not configured" error that tells a model how to ask the user without exposing a value |
 | `examples/echo-server` | a one-tool server showing the build-tag scope pattern |
 
 Each package carries its own scope and goals in its `doc.go`; `go doc ./registry` shows it.
