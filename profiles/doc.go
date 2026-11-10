@@ -8,6 +8,9 @@
 // ask the user to configure, in a form it can copy into a configure_tool call. The values are
 // never part of any error or result.
 //
+// File tools must never hand these files to a model: Protected reports whether a path is in the profiles directory or the
+// issued-secrets directory, and mcp-local's file and IDE tools refuse such paths whatever folders are open.
+//
 // Who writes a profile: the user, in an editor, or through the Synod form (the extension host
 // writes the file; the model never sees the values), or a provisioning tool that has just created
 // a credential. Save merges into the existing file so one writer does not erase another's keys.

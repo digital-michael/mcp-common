@@ -193,3 +193,58 @@ func Resolve(name string, fields []Field) (values map[string]string, sources map
 	}
 	return values, sources, nil
 }
+
+// EnvSecretsDir is the admin tools' directory for issued secrets (mcp-admin writes it; the name is shared here only so the
+// file tools can refuse it).
+const EnvSecretsDir = "DATUM_ADMIN_SECRETS_DIR"
+
+// ProtectedDirs are the folders that hold credentials the user, not a model, supplies or that a tool issued: the profiles
+// directory and the issued-secrets directory.
+func ProtectedDirs() []string {
+	var dirs []string
+	if d, err := Dir(); err == nil {
+		dirs = append(dirs, d)
+	}
+	if d := os.Getenv(EnvSecretsDir); d != "" {
+		dirs = append(dirs, d)
+	} else if home, err := os.UserHomeDir(); err == nil {
+		dirs = append(dirs, filepath.Join(home, ".local", "share", "datum", "secrets"))
+	}
+	return dirs
+}
+
+// canonical resolves symlinks as far as the path exists, so a link into a protected folder is seen for what it is, and a path
+// that does not exist yet (a write target) is judged by where it would be.
+func canonical(p string) string {
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return filepath.Clean(p)
+	}
+	rest := ""
+	cur := abs
+	for {
+		if real, err := filepath.EvalSymlinks(cur); err == nil {
+			return filepath.Join(real, rest)
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			return abs
+		}
+		rest = filepath.Join(filepath.Base(cur), rest)
+		cur = parent
+	}
+}
+
+// Protected reports whether p is, or lies inside, a protected folder. File tools call it on every path they are given and
+// refuse the path, whatever workspace roots are open: the values in those files are for the program that reads them, and a
+// file read would carry them into a chat.
+func Protected(p string) bool {
+	c := canonical(p)
+	for _, d := range ProtectedDirs() {
+		pd := canonical(d)
+		if c == pd || strings.HasPrefix(c, pd+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
+}

@@ -78,3 +78,35 @@ func TestResolve_environmentWinsAndMissingIsActionable(t *testing.T) {
 		t.Errorf("a value leaked into the error: %s", msg)
 	}
 }
+
+func TestProtected_profilesAndSecretsFoldersAreNeverReadable(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv(EnvDir, filepath.Join(root, "profiles"))
+	t.Setenv(EnvSecretsDir, filepath.Join(root, "secrets"))
+	Save("p", map[string]string{"a": "1"})
+	os.MkdirAll(filepath.Join(root, "secrets"), 0o700)
+	os.WriteFile(filepath.Join(root, "secrets", "x.secret"), []byte("s"), 0o600)
+	os.MkdirAll(filepath.Join(root, "work"), 0o700)
+
+	for _, p := range []string{
+		filepath.Join(root, "profiles"), filepath.Join(root, "profiles", "p.json"), filepath.Join(root, "profiles", "new.json"),
+		filepath.Join(root, "profiles", "sub", "deeper.json"), filepath.Join(root, "secrets", "x.secret"), filepath.Join(root, "work", "..", "profiles", "p.json"),
+	} {
+		if !Protected(p) {
+			t.Errorf("%s should be protected", p)
+		}
+	}
+	for _, p := range []string{filepath.Join(root, "work", "a.txt"), filepath.Join(root, "profiles-not"), filepath.Join(root, "secretsx")} {
+		if Protected(p) {
+			t.Errorf("%s should not be protected", p)
+		}
+	}
+	// A link in the work folder that points into the profiles folder is seen for what it is.
+	link := filepath.Join(root, "work", "innocent.json")
+	if err := os.Symlink(filepath.Join(root, "profiles", "p.json"), link); err != nil {
+		t.Fatal(err)
+	}
+	if !Protected(link) {
+		t.Error("a symlink into the profiles folder must be protected")
+	}
+}
