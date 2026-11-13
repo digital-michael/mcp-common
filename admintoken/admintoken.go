@@ -1,6 +1,7 @@
 package admintoken
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
@@ -10,7 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/mark3labs/mcp-go/mcp"
+
 	"github.com/digital-michael/mcp-common/profiles"
+	"github.com/digital-michael/mcp-common/registry"
 )
 
 // EnvFile overrides where the token is kept.
@@ -94,4 +98,38 @@ func Check(given string) error {
 		return errors.New("the admin token is wrong")
 	}
 	return nil
+}
+
+// Gate adds the admin_token argument to a tool and refuses the call, before the tool's own handler runs, unless it matches the
+// stored token. A refused call changes nothing, not even by a dry run.
+func Gate(d registry.ToolDef) registry.ToolDef {
+	// The schema's map is shared with the definition passed in: copy it, so wrapping never changes the original.
+	props := make(map[string]any, len(d.Tool.InputSchema.Properties)+1)
+	for k, v := range d.Tool.InputSchema.Properties {
+		props[k] = v
+	}
+	d.Tool.InputSchema.Properties = props
+	d.Tool.InputSchema.Properties[ArgName] = map[string]any{
+		"type":        "string",
+		"description": "The admin token. Required: this tool changes things, and a gateway key alone is not enough. Synod Chat supplies it; it is kept in the user's protected secrets folder.",
+	}
+	d.CLI.Params = append(append([]string(nil), d.CLI.Params...), ArgName)
+	d.CLI.Args += ", " + ArgName + " (required)"
+	ex := map[string]string{ArgName: "<token>"}
+	for k, v := range d.CLI.Examples {
+		ex[k] = v
+	}
+	d.CLI.Examples = ex
+	inner := d.Handler
+	d.Handler = func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		if err := Check(req.GetString(ArgName, "")); err != nil {
+			msg := err.Error()
+			if errors.Is(err, ErrNotSet) {
+				msg = "no admin token exists yet. In Synod Chat the first change that needs it offers to create it"
+			}
+			return mcp.NewToolResultError("NOT ALLOWED, nothing was changed: " + msg), nil
+		}
+		return inner(ctx, req)
+	}
+	return d
 }
