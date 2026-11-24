@@ -41,5 +41,8 @@ func main() {
 	// the actual -X flags that stamp buildinfo.Version/BuildID.
 	reg.Add(buildinfo.Tool("echo-server", registry.TierLocal))
 
+	// INTENTIONAL-FAILURE: BuildScope and AllowedTiers are declared only in the tagged scope_*.go files.
+	// A build with no scope tag stops here (undefined: BuildScope) on purpose. Do not declare them
+	// untagged to make a bare `go build ./...` pass. Verify with: make test.
 	bootstrap.Run("echo-server", buildinfo.Full(), family, BuildScope, AllowedTiers, reg, []string{"diagnostics"})
 }

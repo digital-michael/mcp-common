@@ -1,3 +1,7 @@
+# INTENTIONAL-FAILURE: a build with no scope tag fails to compile (undefined: BuildScope) on purpose.
+# The tags are set by the targets below (see scope_*.go). Do not "fix" a bare `go build ./...` failure;
+# the gate is `make test`.
+#
 # Library packages (registry/config/bootstrap) are tag-agnostic by design --
 # examples/echo-server is NOT, it requires exactly one of local/membership/global
 # (see examples/echo-server/scope_*.go) and fails to compile with none, on

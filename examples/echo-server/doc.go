@@ -20,4 +20,10 @@
 // Owns: the example's scope files and its one echo tool.
 // Depends on: bootstrap, buildinfo and registry.
 // Used by: nobody; it is built by this module's Makefile.
+//
+// # Intentional failure
+//
+// INTENTIONAL-FAILURE: this command fails to compile with no scope tag (undefined: BuildScope).
+// Exactly one of local, membership or global must be set, and there is no untagged scope file on
+// purpose. Do not add a default to make a bare go build pass. Verify with: make test.
 package main

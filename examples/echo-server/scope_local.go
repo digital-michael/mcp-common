@@ -4,6 +4,10 @@ package main
 
 import "github.com/digital-michael/mcp-common/registry"
 
+// INTENTIONAL-FAILURE: there is no untagged scope file in this package, so a build with no
+// scope tag fails to compile (undefined: BuildScope). That is the design (fail closed).
+// Do not add a default or fallback file to make it build. Verify with: make test.
+
 // BuildScope is set only by which build tag produced this binary -- see
 // scope_membership.go/scope_global.go for the other variants. There is
 // deliberately no untagged fallback file: building with no scope tag at all
