@@ -22,5 +22,5 @@
 //
 // Owns: the file format, its location, and the alias rules.
 // Depends on: the standard library only.
-// Used by: mcp-local (model tools), and the Synod extension, which reads and writes the same file.
+// Used by: mcp-local (model tools), and the Nexus extension, which reads and writes the same file.
 package modelprefs

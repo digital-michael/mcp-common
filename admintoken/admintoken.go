@@ -111,7 +111,7 @@ func Gate(d registry.ToolDef) registry.ToolDef {
 	d.Tool.InputSchema.Properties = props
 	d.Tool.InputSchema.Properties[ArgName] = map[string]any{
 		"type":        "string",
-		"description": "The admin token. Required: this tool changes things, and a gateway key alone is not enough. Synod Chat supplies it; it is kept in the user's protected secrets folder.",
+		"description": "The admin token. Required: this tool changes things, and a gateway key alone is not enough. Nexus Chat supplies it; it is kept in the user's protected secrets folder.",
 	}
 	d.CLI.Params = append(append([]string(nil), d.CLI.Params...), ArgName)
 	d.CLI.Args += ", " + ArgName + " (required)"
@@ -125,7 +125,7 @@ func Gate(d registry.ToolDef) registry.ToolDef {
 		if err := Check(req.GetString(ArgName, "")); err != nil {
 			msg := err.Error()
 			if errors.Is(err, ErrNotSet) {
-				msg = "no admin token exists yet. In Synod Chat the first change that needs it offers to create it"
+				msg = "no admin token exists yet. In Nexus Chat the first change that needs it offers to create it"
 			}
 			return mcp.NewToolResultError("NOT ALLOWED, nothing was changed: " + msg), nil
 		}
