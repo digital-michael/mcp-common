@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	configcore "github.com/digital-michael/config-core"
 )
 
 // EnvFile overrides the settings file's location.
@@ -31,20 +33,13 @@ type Prefs struct {
 
 var aliasRE = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,39}$`)
 
-// Path is the settings file: DATUM_MODELS_FILE, else $XDG_CONFIG_HOME/datum/models.json, else ~/.config/datum/models.json.
+// Path is the settings file: DATUM_MODELS_FILE, else models.json in the config folder of the Photon Datum layout (config-core:
+// $XDG_CONFIG_HOME/photon-datum/models.json, else ~/.config/photon-datum/models.json).
 func Path() (string, error) {
 	if p := os.Getenv(EnvFile); p != "" {
 		return p, nil
 	}
-	base := os.Getenv("XDG_CONFIG_HOME")
-	if base == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("resolving home directory: %w", err)
-		}
-		base = filepath.Join(home, ".config")
-	}
-	return filepath.Join(base, "datum", "models.json"), nil
+	return configcore.Default().ModelsFile()
 }
 
 // Load reads the settings. A missing file is empty settings, not an error.

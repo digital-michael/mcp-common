@@ -1,7 +1,7 @@
 // Package modelprefs holds one user's personal model settings: aliases (a label of the user's own for a
 // model) and the context size the user wants for a model.
 //
-// The settings are one JSON file on the machine the user works on, ~/.config/datum/models.json
+// The settings are one JSON file on the machine the user works on, ~/.config/photon-datum/models.json
 // (DATUM_MODELS_FILE moves it). They are deliberately not in the inference gateway's configuration:
 // on a shared deployment that configuration belongs to every user, and a personal alias or context
 // size must not change it. The gateway therefore never sees an alias. The client resolves it to the

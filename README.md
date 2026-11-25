@@ -26,7 +26,7 @@ Every MCP server in the family (`mcp-local`, `mcp-admin`, `mcp-agent`) needs the
 | | |
 |---|---|
 | **Owns** | `ToolDef`, `Tier`, `Reach`, `Access` and `Class`, the registry and its filtering, the `_meta` stamp, the server command line, domain switches, the version convention, the model-slot rule |
-| **Depends on** | the [mcp-go](https://github.com/mark3labs/mcp-go) library; the standard library |
+| **Depends on** | the [mcp-go](https://github.com/mark3labs/mcp-go) library; [config-core](https://github.com/digital-michael/config-core) (where a program keeps its files); the standard library |
 | **Used by** | `mcp-local`, `mcp-admin` and `mcp-agent` (all three import `registry`; `mcp-admin` and `mcp-agent` also use `bootstrap` and `buildinfo`; `mcp-agent` uses `slots`) |
 
 The dependency direction is one way: consumers import this module, and this module imports none of them.

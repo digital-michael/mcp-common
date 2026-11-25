@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	configcore "github.com/digital-michael/config-core"
 )
 
 // EnvDir overrides the profiles directory.
@@ -32,16 +34,13 @@ type Field struct {
 	Env string `json:"-"`
 }
 
-// Dir is DATUM_PROFILES_DIR, else ~/.local/share/datum/profiles (next to the issued secrets).
+// Dir is DATUM_PROFILES_DIR, else the profiles folder of the Photon Datum layout (config-core: <data>/photon-datum/profiles, next to the
+// issued secrets).
 func Dir() (string, error) {
 	if d := os.Getenv(EnvDir); d != "" {
 		return d, nil
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", fmt.Errorf("resolving home directory: %w", err)
-	}
-	return filepath.Join(home, ".local", "share", "datum", "profiles"), nil
+	return configcore.Default().ProfilesDir()
 }
 
 // Path is the file of a profile.
@@ -207,8 +206,8 @@ func ProtectedDirs() []string {
 	}
 	if d := os.Getenv(EnvSecretsDir); d != "" {
 		dirs = append(dirs, d)
-	} else if home, err := os.UserHomeDir(); err == nil {
-		dirs = append(dirs, filepath.Join(home, ".local", "share", "datum", "secrets"))
+	} else if d, err := configcore.Default().SecretsDir(); err == nil {
+		dirs = append(dirs, d)
 	}
 	return dirs
 }
