@@ -11,7 +11,7 @@
 // File tools must never hand these files to a model: Protected reports whether a path is in the profiles directory or the
 // issued-secrets directory, and mcp-local's file and IDE tools refuse such paths whatever folders are open.
 //
-// Who writes a profile: the user, in an editor, or through the Nexus form (the extension host
+// Who writes a profile: the user, in an editor, or through the Photum form (the extension host
 // writes the file; the model never sees the values), or a provisioning tool that has just created
 // a credential. Save merges into the existing file so one writer does not erase another's keys.
 //
@@ -31,6 +31,6 @@
 //
 // Owns: the profile file format, its location and permissions, and field resolution.
 // Depends on: the standard library only.
-// Used by: mcp-local (ledger_copy target), mcp-admin (provisioning), the Nexus extension (which
+// Used by: mcp-local (ledger_copy target), mcp-admin (provisioning), the Photum extension (which
 // writes the same files from TypeScript).
 package profiles
